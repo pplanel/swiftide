@@ -34,7 +34,6 @@ pub struct AwsBedrock {
     /// The model id or arn of the model to use
     model_id: String,
     #[builder(default = "self.default_client()", setter(custom))]
-
     /// The bedrock runtime client
     client: Arc<dyn BedrockPrompt>,
     #[builder(default)]
@@ -90,6 +89,11 @@ impl AwsBedrock {
     pub fn build_anthropic_family(model_id: impl Into<String>) -> AwsBedrockBuilder {
         Self::builder().anthropic().model_id(model_id).to_owned()
     }
+
+    /// Build a new `AwsBedrock` instance with the Anthropic model family
+    pub fn build_llama_family(model_id: impl Into<String>) -> AwsBedrockBuilder {
+        Self::builder().llama().model_id(model_id).to_owned()
+    }
 }
 impl AwsBedrockBuilder {
     /// Set the model family to Anthropic
@@ -101,6 +105,12 @@ impl AwsBedrockBuilder {
     /// Set the model family to Titan
     pub fn titan(&mut self) -> &mut Self {
         self.model_family = Some(ModelFamily::Titan);
+        self
+    }
+
+     /// Set the model family to Llamma
+     pub fn llama(&mut self) -> &mut Self {
+        self.model_family = Some(ModelFamily::Llama);
         self
     }
 

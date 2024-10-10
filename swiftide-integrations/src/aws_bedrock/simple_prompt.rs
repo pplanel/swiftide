@@ -32,6 +32,8 @@ mod test {
 
     use super::*;
     use anyhow::Context as _;
+    use meta::LlammaResponse;
+    use meta::LlammaUsage;
     use test_log;
 
     #[test_log::test(tokio::test)]
@@ -83,6 +85,28 @@ mod test {
             .context("Failed to serialize response")
         });
         let bedrock = AwsBedrock::build_anthropic_family("my_model")
+            .test_client(bedrock_mock)
+            .build()
+            .unwrap();
+        let response = bedrock.prompt("Hello".into()).await.unwrap();
+        assert_eq!(response, "Hello, world!");
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn test_prompt_with_llama() {
+        let mut bedrock_mock = MockBedrockPrompt::new();
+        bedrock_mock.expect_prompt_u8().once().returning(|_, _| {
+            serde_json::to_vec(&LlammaResponse {
+                generation: "Hello, world!".into(),
+                usage: LlammaUsage {
+                    prompt_token_count: 10,
+                    generation_token_count: 10,
+                },
+                stop_reason: None,
+            })
+            .context("Failed to serialize response")
+        });
+        let bedrock = AwsBedrock::build_llama_family("my_model")
             .test_client(bedrock_mock)
             .build()
             .unwrap();

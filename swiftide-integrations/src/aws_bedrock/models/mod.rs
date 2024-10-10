@@ -1,8 +1,10 @@
 use anyhow::{Context as _, Result};
+use meta::{LlammaRequest, LlammaResponse};
 
 use super::ModelConfig;
 
 pub mod anthropic;
+pub mod meta;
 pub mod titan;
 
 pub(crate) use anthropic::*;
@@ -17,6 +19,8 @@ pub enum ModelFamily {
     Anthropic,
     /// The titan model family
     Titan,
+    /// The Meta Llamma model family
+    Llama,
 }
 
 impl ModelFamily {
@@ -53,6 +57,18 @@ impl ModelFamily {
                 };
                 serde_json::to_vec(&request).context("Failed to serialize request")
             }
+            ModelFamily::Llama => {
+                let request = LlammaRequest {
+                    max_tokens: model_config.max_token_count,
+                    prompt: input_text.as_ref().to_string(),
+                    system_prompt: None,
+                    temperature: Some(model_config.temperature),
+                    top_p: None,
+                    max_gen_len: None,
+                    images: None,
+                };
+                serde_json::to_vec(&request).context("Failed to serialize request")
+            }
         }
     }
 
@@ -78,6 +94,16 @@ impl ModelFamily {
                 }
 
                 Ok(response.results.swap_remove(0).output_text)
+            }
+            ModelFamily::Llama => {
+                let response: LlammaResponse =
+                    serde_json::from_slice(response_bytes).context("Failed to parse response")?;
+
+                if response.generation.is_empty() {
+                    return Err(anyhow::anyhow!("No results returned"));
+                }
+
+                Ok(response.generation)
             }
         }
     }
